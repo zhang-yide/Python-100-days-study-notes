@@ -375,6 +375,7 @@ admin.site.register(Post, PostAdmin)
 
 ```python
  blog/apps.py
+ 
  from django.apps import AppConfig
   
   
@@ -399,9 +400,9 @@ admin.site.register(Post, PostAdmin)
   配置 model 的一些特性是通过 model 的内部类 `Meta` 中来定义。比如对于 Post 模型，要让他在 admin 后台显示为中文，如下： 
 
 ```python
- blog/models.py
- ...
- class Post(models.Model):
+blog/models.py
+
+class Post(models.Model):
      ...
      author = models.ForeignKey(User, on_delete=models.CASCADE)
   
@@ -422,7 +423,9 @@ admin.site.register(Post, PostAdmin)
  以`Post`为例：
 
 ```python
- class Post(models.Model):
+blog/models.py
+
+class Post(models.Model):
      title = models.CharField('标题', max_length=70)
      body = models.TextField('正文')
      created_time = models.DateTimeField('创建时间')
@@ -434,6 +437,68 @@ admin.site.register(Post, PostAdmin)
 ```
 
 7. 优化表单显示
+
+   1. 简化文章新建、修改界面条目
+
+      ```python
+      blog/admin.py
+      
+      class PostAdmin(admin.ModelAdmin):
+          list_display = ('title', 'created_time', 'category', 'author')
+          fields = ['title', 'body', 'excerpt', 'category', 'tags']
+      ```
+
+      > 其中`list_display`，是列表显示项目。
+      >
+      > `fields`，是新建、修改界面条目。
+
+   2. 自动绑定当前用户为文章作者
+
+      `Postadmin `继承自 `ModelAdmin`，它有一个 `save_model` 方法，这个方法只有一行代码：`obj.save()`。它的作用就是将此 `Modeladmin `关联注册的 model 实例（这里 Modeladmin 关联注册的是 `Post`）保存到数据库。这个方法接收四个参数，其中前两个，一个是` request`，即此次的 HTTP 请求对象，第二个是 `obj`，即此次创建的关联对象的实例，于是通过复写此方法，就可以将 `request.user` 关联到创建的 `Post` 实例上，然后将` Post` 数据再保存到数据库：
+
+      ```python
+      blog/admin.py
+      
+      class PostAdmin(admin.ModelAdmin):
+          list_display = ['title', 'created_time', 'modified_time', 'category', 'author']
+          fields = ['title', 'body', 'excerpt', 'category', 'tags']
+       
+          def save_model(self, request, obj, form, change):
+              obj.author = request.user
+              super().save_model(request, obj, form, change)
+      ```
+
+   3. 自动生成新建时间
+
+      由于创建文章不一定是在 Admin，也可能通过命令行。因此就需要通过对 Post 模型的定制来达到目的。
+
+      ```python
+      blog/models.py
+      
+      from django.utils import timezone
+       
+      class Post(models.Model):
+          ...
+          created_time = models.DateTimeField('创建时间', default=timezone.now)
+          ...
+      ```
+
+   4. 自动生成修改时间
+
+      `Post`继承自`models.Model`，每一个 `Model `都有一个 `save `方法，将 `model `数据保存到数据库。通过覆写这个方法，就可以在 `model `被 `save `到数据库前指定 `modified_time `的值为当前时间。
+
+      ```python
+      blog/models.py
+      
+      from django.utils import timezone
+       
+      class Post(models.Model):
+          ...
+       
+          def save(self, *args, **kwargs):
+              self.modified_time = timezone.now()
+              super().save(*args, **kwargs)
+      ```
 
 ### 使用ORM完成模型的CRUD操作
 在了解了Django提供的模型管理平台之后，我们来看看如何从代码层面完成对模型的CRUD（Create / Read / Update / Delete）操作。我们可以通过manage.py开启Shell交互式环境，然后使用Django内置的ORM框架对模型进行CRUD操作。
@@ -660,7 +725,8 @@ def index(request):
 4. 修改模板
 
 	1. 修改模板，以获取视图函数中的数据。
-2. 将模板中`article`部分替换为一下内容：
+	
+	   将模板中`article`部分替换为一下内容：
 
 ```html
 templates/blog/index.html
@@ -680,4 +746,6 @@ templates/blog/index.html
 >  `{% empty %} `的作用是当 `post_list` 为空，即数据库里没有文章时显示 `{% empty %}` 下面的内容  
 
 并依次将`post`里的属性替换进去。
+
+### 创建文章详情页
 

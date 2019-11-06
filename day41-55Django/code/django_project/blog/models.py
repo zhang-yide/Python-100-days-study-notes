@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 
 class Category(models.Model):
@@ -30,7 +31,7 @@ class Post(models.Model):
     """文章"""
     title = models.CharField(max_length=70, verbose_name='标题')
     body = models.TextField()
-    created_time = models.DateTimeField('创建时间')
+    created_time = models.DateTimeField('创建时间', default=timezone.now)
     modified_time = models.DateTimeField('修改时间')
     excerpt = models.CharField(max_length=200, blank=True, verbose_name='摘要')
     category = models.ForeignKey(Category, on_delete=models.CASCADE, verbose_name='分类')
@@ -43,3 +44,7 @@ class Post(models.Model):
 
     def __str__(self):
         return self.title
+
+    def save(self, *args, **kwargs):
+        self.modified_time = timezone.now()
+        super().save(*args, **kwargs)

@@ -13,7 +13,12 @@ class TagAdmin(admin.ModelAdmin):
 
 class PostAdmin(admin.ModelAdmin):
     list_display = ('title', 'created_time', 'category', 'author')
+    fields = ['title', 'body', 'excerpt', 'category', 'tags']
     ordering = ('-created_time',)
+
+    def save_model(self, request, obj, form, change):
+        obj.author = request.user
+        super().save_model(request, obj, form, change)
 
 
 admin.site.register(Category, CategoryAdmin)
