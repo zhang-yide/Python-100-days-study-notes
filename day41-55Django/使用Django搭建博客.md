@@ -749,3 +749,99 @@ templates/blog/index.html
 
 ### 创建文章详情页
 
+1. 设计文章详情页的URL
+
+   我们可以把文章详情页面对应的视图设计成这个样子：当用户访问` <网站域名>/posts/1/ `时，显示的是第一篇文章的内容，而当用户访问` <网站域名>/posts/2/` 时，显示的是第二篇文章的内容，这里数字代表了第几篇文章，也就是数据库中 `Post `记录的` id `值。下面依照这个规则来绑定 URL 和视图：
+
+   ```python
+   blog/urls.py
+   
+   from django.urls import path
+    
+   from . import views
+    
+   app_name = 'blog'
+   urlpatterns = [
+       path('', views.index, name='index'),
+       path('posts/<int:pk>/', views.detail, name='detail'),
+   ]
+   ```
+
+   > 这里 `<int:pk>` 是 django 路由匹配规则的特殊写法，其作用是从用户访问的 URL 里把匹配到的数字捕获并作为关键字参数传给其对应的视图函数 `detail`里的`pk`。
+   >
+   >  `app_name='blog'` 用来告诉 django 这个 `urls.py` 模块是属于 blog 应用的，这种技术叫做视图函数命名空间。
+
+   为了方便地生成上述的 URL，我们在 `Post` 类里定义一个 `get_absolute_url` 方法，注意 `Post` 本身是一个 Python 类，在类中我们是可以定义任何方法的。
+
+   ```python
+   blog/models.py
+   
+   ...
+   from django.urls import reverse
+   
+   class Post(models.Model):
+       ...
+   
+       def __str__(self):
+           return self.title
+   
+       def get_absolute_url(self):
+           return reverse('blog:detail', kwargs={'pk': self.pk})
+   
+   ```
+
+   注意到 URL 配置中的 `path('posts//', views.detail, name='detail')`，我们设定的 `name='detail'` 在这里派上了用场。看到这个 `reverse` 函数，它的第一个参数的值是 `'blog:detail'`，意思是 blog 应用下的 `name=detail` 的函数，由于我们在上面通过 `app_name = 'blog'` 告诉了 django 这个 URL 模块是属于 blog 应用的，因此 django 能够顺利地找到 blog 应用下 name 为 detail 的视图函数，于是 `reverse` 函数会去解析这个视图函数对应的 URL，我们这里 detail 对应的规则就是 `posts//` int 部分会被后面传入的参数 `pk` 替换，所以，如果 `Post` 的 id（或者 pk，这里 pk 和 id 是等价的） 是 255 的话，那么 `get_absolute_url` 函数返回的就是 /posts/255/ ，这样 Post 自己就生成了自己的 URL。
+
+   这里`return`语句等价于`return 'post/' + str(self.pk)`
+
+2. 编写detail 视图函数
+
+   ```python
+   blog/views.py
+    
+   from django.shortcuts import render, get_object_or_404
+   from .models import Post
+    
+   def index(request):
+       # ...
+    
+   def detail(request, pk):
+       post = get_object_or_404(Post, pk=pk)
+       return render(request, 'blog/detail.html', context={'post': post})
+   ```
+
+   视图函数很简单，它根据我们从 URL 捕获的文章 id（也就是 pk，这里 pk 和 id 是等价的）获取数据库中文章 id 为该值的记录，然后传递给模板。
+
+3. 编写详情页模版
+
+   为了实现从`index`页点击链接进入`detail`页，需要对`index.html`文件做些修改。
+
+   ```html
+   templates/blog/index.html
+    
+   <article class="post post-{{ post.pk }}">
+     <header class="entry-header">
+       <h1 class="entry-title">
+         <a href="{{ post.get_absolute_url }}">{{ post.title }}</a>
+       </h1>
+       ...
+     </header>
+     <div class="entry-content clearfix">
+       ...
+       <div class="read-more cl-effect-14">
+         <a href="{{ post.get_absolute_url }}" class="more-link">继续阅读 <span class="meta-nav">→</span></a>
+       </div>
+     </div>
+   </article>
+   ```
+
+   > 这里 `{{ post.get_absolute_url }}` 最终会被替换成该 `post` 自身的 URL。
+
+   然后按照之前相同的方法，修改`detail.html`即可。
+
+4. 模版继承
+
+   
+
+5. 
+
