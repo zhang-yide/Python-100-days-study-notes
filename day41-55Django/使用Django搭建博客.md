@@ -660,8 +660,7 @@ def index(request):
 4. 修改模板
 
 	1. 修改模板，以获取视图函数中的数据。
-
-	2. 将模板中`article`部分替换为一下内容：
+2. 将模板中`article`部分替换为一下内容：
 
 ```html
 templates/blog/index.html
@@ -680,4 +679,5 @@ templates/blog/index.html
 > 这里的 `{{ post.pk }}`（pk 是 primary key 的缩写，即 post 对应于数据库中记录的 id 值，该属性尽管我们没有显示定义，但是 django 会自动为我们添加）  
 >  `{% empty %} `的作用是当 `post_list` 为空，即数据库里没有文章时显示 `{% empty %}` 下面的内容  
 
-	3. 并依次将`post`里的属性替换进去。
+并依次将`post`里的属性替换进去。
+
