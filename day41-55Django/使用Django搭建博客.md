@@ -841,7 +841,88 @@ templates/blog/index.html
 
 4. 模版继承
 
-   
+   在template目录下新建`base.html`文件，将`index.html`和`detail.html`共有部分粘贴进去，用`{% block <name> %}``{% endblock <name> %}` 的格式替换需要替换的部分。
+
+   ```html
+   templates/base.html
+    
+   ...
+   <main class="col-md-8">
+       {% block main %}
+       {% endblock main %}
+   </main>
+   <aside class="col-md-4">
+     {% block toc %}
+     {% endblock toc %}
+     ...
+   </aside>
+   ...
+   ```
+
+   在`index.html` 和 `detail.html` 顶部添加`{% extends 'base.html' %}` 以继承`base.html` 中的内容，并分别替换各自不同内容。
+
+   ```html
+   templates/blog/index.html
+    
+   {% extends 'base.html' %}
+    
+   {% block main %}
+       {% for post in post_list %}
+           <article class="post post-1">
+             ...
+           </article>
+       {% empty %}
+           <div class="no-post">暂时还没有发布的文章！</div>
+       {% endfor %}
+       <!-- 简单分页效果
+       <div class="pagination-simple">
+           <a href="#">上一页</a>
+           <span class="current">第 6 页 / 共 11 页</span>
+           <a href="#">下一页</a>
+       </div>
+       -->
+       <div class="pagination">
+         ...
+       </div>
+   {% endblock main %}
+   ```
+
+   ```html
+   templates/blog/detail.html
+    
+   {% extends 'base.html' %}
+    
+   {% block main %}
+       <article class="post post-1">
+         ...
+       </article>
+       <section class="comment-area">
+         ...
+       </section>
+   {% endblock main %}
+   {% block toc %}
+       <div class="widget widget-content">
+           <h3 class="widget-title">文章目录</h3>
+           <ul>
+               <li>
+                   <a href="#">教程特点</a>
+               </li>
+               <li>
+                   <a href="#">谁适合这个教程</a>
+               </li>
+               <li>
+                   <a href="#">在线预览</a>
+               </li>
+               <li>
+                   <a href="#">资源列表</a>
+               </li>
+               <li>
+                   <a href="#">获取帮助</a>
+               </li>
+           </ul>
+       </div>
+   {% endblock toc %}
+   ```
 
 5. 
 
