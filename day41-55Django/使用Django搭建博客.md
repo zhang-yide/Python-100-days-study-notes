@@ -924,5 +924,108 @@ templates/blog/index.html
    {% endblock toc %}
    ```
 
-5. 
+### 添加Markdown支持
 
+1. 安装markdown插件
+
+   ```shell
+   pip install markdown
+   ```
+
+2. 在detail视图中的解析Markdown
+
+   ```python
+   blog/views.py
+    
+   import markdown
+   from django.shortcuts import get_object_or_404, render
+    
+   from .models import Post
+    
+   def detail(request, pk):
+       post = get_object_or_404(Post, pk=pk)
+       post.body = markdown.markdown(post.body,
+                                     extensions=[
+                                         'markdown.extensions.extra',
+                                         'markdown.extensions.codehilite',
+                                         'markdown.extensions.toc',
+                                     ])
+       return render(request, 'blog/detail.html', context={'post': post})
+   ```
+
+   > `markdown.extensions`函数说明
+   >
+   > - `extra`本身包含很多扩展
+   > - `codehilite`是语法高亮
+   > - `toc`是自动生成目录
+
+3. 在模版文件中添加safe标签
+
+   django 出于安全方面的考虑，任何的 HTML 代码在 django 的模板中都会被转义（即显示原始的 HTML 代码，而不是经浏览器渲染后的格式）。为了解除转义，只需在模板变量后使用 `safe` 过滤器。即，在模板中找到展示博客文章内容的 `{{ post.body }}` 部分，为其加上 safe 过滤器：`{{ post.body|safe }}`。
+
+4. 代码高亮
+
+   代码高亮我们借助 js 插件来实现，其原理就是 js 解析整个 html 页面，然后找到代码块元素，为代码块中的元素添加样式。我们使用的插件叫做 `highlight.js` 和 `highlightjs-line-numbers.js`，前者提供基础的代码高亮，后者为代码块添加行号。
+
+   首先在` base.html `的` head `标签里引入代码高亮的样式，有多种样式供你选择，这里我们选择 Github 主题的样式。样式文件直接通过 CDN 引入，同时在 `style `标签里自定义了一点元素样式，使得代码块的显示效果更加完美。
+
+   ```html
+   templates/base.html
+   
+   <head>
+     ...
+     <link href="https://cdn.bootcss.com/highlight.js/9.15.8/styles/github.min.css" rel="stylesheet">
+    
+     <style>
+       .codehilite {
+         padding: 0;
+       }
+    
+       /* for block of numbers */
+       .hljs-ln-numbers {
+         -webkit-touch-callout: none;
+         -webkit-user-select: none;
+         -khtml-user-select: none;
+         -moz-user-select: none;
+         -ms-user-select: none;
+         user-select: none;
+    
+         text-align: center;
+         color: #ccc;
+         border-right: 1px solid #CCC;
+         vertical-align: top;
+         padding-right: 5px;
+       }
+    
+       .hljs-ln-n {
+         width: 30px;
+       }
+    
+       /* for block of code */
+       .hljs-ln .hljs-ln-code {
+         padding-left: 10px;
+         white-space: pre;
+       }
+     </style>
+   </head>
+   ```
+
+   然后是引入 js 文件，因为应该等整个页面加载完，插件再去解析代码块，所以把 js 文件的引入放在 `body` 底部：
+
+   ```html
+   templates/base.html
+   
+   <body>
+     <script src="https://cdn.bootcss.com/highlight.js/9.15.8/highlight.min.js"></script>
+     <script src="https://cdn.bootcss.com/highlightjs-line-numbers.js/2.7.0/highlightjs-line-numbers.min.js"></script>
+     <script>
+       hljs.initHighlightingOnLoad();
+       hljs.initLineNumbersOnLoad();
+     </script>
+   </body>
+   </body>
+   ```
+
+   非常简单，通过 CDN 引入 `highlight.js` 和 `highlightjs-line-numbers.js`，然后初始化了两个插件。
+
+5. 
