@@ -1044,4 +1044,47 @@ templates/blog/index.html
       <link rel="stylesheet" href="{% static 'blog/css/highlights/github.css' %}">
       ```
 
-4. 
+4. 自动生成目录
+
+   1. 在视图函数中添加目录属性
+
+      ```python
+      blog/views.py
+       
+      def detail(request, pk):
+          post = get_object_or_404(Post, pk=pk)
+          md = markdown.Markdown(extensions=[
+              'markdown.extensions.extra',
+              'markdown.extensions.codehilite',
+              'markdown.extensions.toc',
+          ])
+          post.body = md.convert(post.body)
+              post.toc = md.toc
+       
+          return render(request, 'blog/detail.html', context={'post': post})
+      ```
+
+      > 要注意这个 post 实例本身是没有 toc 属性的，我们给它动态添加了 toc 属性，这就是 Python 动态语言的好处。
+
+      和之前的代码不同，我们没有直接用 `markdown.markdown()` 方法来渲染 `post.body`中的内容，而是先实例化了一个 `markdown.Markdown` 对象 `md`，和 `markdown.markdown()` 方法一样，也传入了 `extensions` 参数。接着我们便使用该实例的 `convert` 方法将 `post.body` 中的 Markdown 文本解析成 HTML 文本。而一旦调用该方法后，实例 `md` 就会多出一个 `toc` 属性，这个属性的值就是内容的目录。
+
+      **注意**：`markdown.markdown()`改为了`markdown.Markdown()`。
+
+   2. 修改模版
+
+      ```html
+      templates/blog/detail.html
+      ...
+      {% block toc %}
+          <div class="widget widget-content">
+              <h3 class="widget-title">文章目录</h3>
+              {{ post.toc|safe }}
+          </div>
+      {% endblock toc %}
+      ```
+
+5. 自动生成摘要
+
+   [自动生成文章摘要](https://www.zmrenwu.com/courses/hellodjango-blog-tutorial/materials/69/)
+
+6. 
