@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.urls import reverse
+from mdeditor.fields import MDTextField
 
 
 class Category(models.Model):
@@ -31,7 +32,7 @@ class Tag(models.Model):
 class Post(models.Model):
     """文章"""
     title = models.CharField(max_length=70, verbose_name='标题')
-    body = models.TextField()
+    body = MDTextField()
     created_time = models.DateTimeField('创建时间', default=timezone.now)
     modified_time = models.DateTimeField('修改时间')
     excerpt = models.CharField(max_length=200, blank=True, verbose_name='摘要')

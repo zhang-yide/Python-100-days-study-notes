@@ -926,106 +926,122 @@ templates/blog/index.html
 
 ### 添加Markdown支持
 
-1. 安装markdown插件
+1. 实现后台markdown编辑
 
-   ```shell
-   pip install markdown
-   ```
+   1. 安装插件
 
-2. 在detail视图中的解析Markdown
+      ```shell
+      pip install django-mdeditor
+      ```
 
-   ```python
-   blog/views.py
-    
-   import markdown
-   from django.shortcuts import get_object_or_404, render
-    
-   from .models import Post
-    
-   def detail(request, pk):
-       post = get_object_or_404(Post, pk=pk)
-       post.body = markdown.markdown(post.body,
-                                     extensions=[
-                                         'markdown.extensions.extra',
-                                         'markdown.extensions.codehilite',
-                                         'markdown.extensions.toc',
-                                     ])
-       return render(request, 'blog/detail.html', context={'post': post})
-   ```
+   2. 修改`setting.py` 文件
 
-   > `markdown.extensions`函数说明
-   >
-   > - `extra`本身包含很多扩展
-   > - `codehilite`是语法高亮
-   > - `toc`是自动生成目录
+      ```python
+      django_project/setting.py
+      
+      INSTALLED_APPS = [
+          'django.contrib.admin',
+          'django.contrib.auth',
+          'django.contrib.contenttypes',
+          'django.contrib.sessions',
+          'django.contrib.messages',
+          'django.contrib.staticfiles',
+          'blog.apps.BlogConfig',  # 应用：博客功能
+          'mdeditor',  # Markdown 编辑器
+      ]
+      ```
 
-3. 在模版文件中添加safe标签
+      设置图片等资源的存放media地址，markdown上传的图片在`media/editor/` 文件夹下。
 
-   django 出于安全方面的考虑，任何的 HTML 代码在 django 的模板中都会被转义（即显示原始的 HTML 代码，而不是经浏览器渲染后的格式）。为了解除转义，只需在模板变量后使用 `safe` 过滤器。即，在模板中找到展示博客文章内容的 `{{ post.body }}` 部分，为其加上 safe 过滤器：`{{ post.body|safe }}`。
+      ```python
+      django_project/setting.py
+      
+      MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # 用以存放图片等资源，在项目目录下
+      MEDIA_URL = '/media/'  # markdown编辑上传的文件和图片会默认存在/media/editor下
+      ```
 
-4. 代码高亮
+      3. 添加设置到`urls.py` 
 
-   代码高亮我们借助 js 插件来实现，其原理就是 js 解析整个 html 页面，然后找到代码块元素，为代码块中的元素添加样式。我们使用的插件叫做 `highlight.js` 和 `highlightjs-line-numbers.js`，前者提供基础的代码高亮，后者为代码块添加行号。
+         ```python
+         django_project/urls.py
+         
+         from django.contrib import admin
+         from django.urls import path, include
+         from django.conf.urls.static import static
+         from django.conf import settings
+         
+         urlpatterns = [
+             path('admin/', admin.site.urls),
+             path('blog/', include('blog.urls')),
+             path('mdeditor/', include('mdeditor.urls')),
+         ]
+         
+         if settings.DEBUG:
+             # static files (images, css, javascript, etc.)
+             urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+         ```
 
-   首先在` base.html `的` head `标签里引入代码高亮的样式，有多种样式供你选择，这里我们选择 Github 主题的样式。样式文件直接通过 CDN 引入，同时在 `style `标签里自定义了一点元素样式，使得代码块的显示效果更加完美。
+      4. 在`models.py`中修改需要Markdown的关键词
 
-   ```html
-   templates/base.html
-   
-   <head>
-     ...
-     <link href="https://cdn.bootcss.com/highlight.js/9.15.8/styles/github.min.css" rel="stylesheet">
-    
-     <style>
-       .codehilite {
-         padding: 0;
-       }
-    
-       /* for block of numbers */
-       .hljs-ln-numbers {
-         -webkit-touch-callout: none;
-         -webkit-user-select: none;
-         -khtml-user-select: none;
-         -moz-user-select: none;
-         -ms-user-select: none;
-         user-select: none;
-    
-         text-align: center;
-         color: #ccc;
-         border-right: 1px solid #CCC;
-         vertical-align: top;
-         padding-right: 5px;
-       }
-    
-       .hljs-ln-n {
-         width: 30px;
-       }
-    
-       /* for block of code */
-       .hljs-ln .hljs-ln-code {
-         padding-left: 10px;
-         white-space: pre;
-       }
-     </style>
-   </head>
-   ```
+         ```python
+         blog/models.py
+         
+         class Post(models.Model):
+             body = MDTextField()
+         ```
 
-   然后是引入 js 文件，因为应该等整个页面加载完，插件再去解析代码块，所以把 js 文件的引入放在 `body` 底部：
+2. 实现前端markdown显示
 
-   ```html
-   templates/base.html
-   
-   <body>
-     <script src="https://cdn.bootcss.com/highlight.js/9.15.8/highlight.min.js"></script>
-     <script src="https://cdn.bootcss.com/highlightjs-line-numbers.js/2.7.0/highlightjs-line-numbers.min.js"></script>
-     <script>
-       hljs.initHighlightingOnLoad();
-       hljs.initLineNumbersOnLoad();
-     </script>
-   </body>
-   </body>
-   ```
+   1. 安装插件
 
-   非常简单，通过 CDN 引入 `highlight.js` 和 `highlightjs-line-numbers.js`，然后初始化了两个插件。
+      ```shell
+      pip install markdown
+      ```
 
-5. 
+   2. 在视图函数中解析markdown文本到html文本
+
+      ```python
+      blog/views.py
+      
+      def detail(request, pk):
+          post = get_object_or_404(Post, pk=pk)
+          post.body = markdown.markdown(post.body,
+                                        extensions=[
+                                            'markdown.extensions.extra',
+                                            'markdown.extensions.codehilite',
+                                            'markdown.extensions.toc',
+                                        ])
+          return render(request, 'blog/detail.html', context={'post': post})
+      ```
+
+      > `markdown.extensions`函数说明
+      >
+      > - `extra`本身包含很多扩展
+      > - `codehilite`是语法高亮
+      > - `toc`是自动生成目录
+
+      3. 在模版文件中添加safe标签
+
+         django 出于安全方面的考虑，任何的 HTML 代码在 django 的模板中都会被转义（即显示原始的 HTML 代码，而不是经浏览器渲染后的格式）。为了解除转义，只需在模板变量后使用 `safe` 过滤器。即，在模板中找到展示博客文章内容的 `{{ post.body }}` 部分，为其加上 safe 过滤器：`{{ post.body|safe }}`。
+
+3. 代码高亮
+
+   1. 安装插件
+
+      ```shell
+      pip install pygments
+      ```
+
+   2. 选择高亮样式，实现高亮
+
+      在项目的 `blog\static\blog\css\highlights\` 目录下有很多 .css 样式文件，在 `templates/base.html` 引入即可，以`github.css` 为例：
+
+      ```html
+      templates/base.html
+      
+      <!-- css -->
+      ...
+      <link rel="stylesheet" href="{% static 'blog/css/highlights/github.css' %}">
+      ```
+
+4. 

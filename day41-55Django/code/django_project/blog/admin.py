@@ -12,7 +12,7 @@ class TagAdmin(admin.ModelAdmin):
 
 
 class PostAdmin(admin.ModelAdmin):
-    list_display = ('title', 'created_time', 'category', 'author')
+    list_display = ('title', 'created_time', 'modified_time', 'category', 'author')
     fields = ['title', 'body', 'excerpt', 'category', 'tags']
     ordering = ('-created_time',)
 
