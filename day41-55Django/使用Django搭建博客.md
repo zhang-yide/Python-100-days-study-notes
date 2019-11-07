@@ -667,8 +667,20 @@ def index(request):
 
 1. 处理静态文件
 
+* 先在 **项目目录**下建立一个 static 文件夹。并修改`setting.py`。
+
+  ```python
+  django_project/setting.py
+  ...
+  STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static'),]
+  STATIC_URL = '/static/'
+  ...
+  ```
+
 * 我们的项目使用了从网上下载的一套博客模板（[点击这里下载全套模板](https://github.com/zmrenwu/django-blog-tutorial-templates)）。这里面除了 HTML 文档外，还包含了一些 CSS 文件和 JavaScript 文件以让网页呈现出我们现在看到的样式。
-* 把 CSS 和 JavaScript 文件放在 *blog 应用*的 static 目录下。因此，先在 *blog 应用*下建立一个 static 文件夹。同时，为了避免和其它应用中的 CSS 和 JavaScript 文件命名冲突（别的应用下也可能有和 blog 应用下同名的 CSS 、JavaScript 文件），我们再在 static 目录下建立一个 blog 文件夹，把下载的博客模板中的 css 和 js 文件夹连同里面的全部文件一同拷贝进这个目录。
+
+* 为了避免和其它应用中的 CSS 和 JavaScript 文件命名冲突（别的应用下也可能有和 blog 应用下同名的 CSS 、JavaScript 文件），我们再在 static 目录下建立一个 blog 文件夹，把下载的博客模板中的 css 和 js 文件夹连同里面的全部文件一同拷贝进这个目录。
+
 * 用下载的博客模板中的 index.html 文件替换掉之前我们自己写的 index.html 文件。
 
 2. 修改`index.html`文件，以正确加载静态文件
@@ -742,7 +754,7 @@ templates/blog/index.html
 ...
 ```
 
-> 这里的 `{{ post.pk }}`（pk 是 primary key 的缩写，即 post 对应于数据库中记录的 id 值，该属性尽管我们没有显示定义，但是 django 会自动为我们添加）  
+> 这里的 `{{ post.pk }}`（pk 是 primary key 的缩写，即 post 对应于数据库中记录的 id 值，该属性尽管我们没有显示定义，但是 django 会自动为我们添加）
 >  `{% empty %} `的作用是当 `post_list` 为空，即数据库里没有文章时显示 `{% empty %}` 下面的内容  
 
 并依次将`post`里的属性替换进去。
@@ -1087,4 +1099,152 @@ templates/blog/index.html
 
    [自动生成文章摘要](https://www.zmrenwu.com/courses/hellodjango-blog-tutorial/materials/69/)
 
-6. 
+### 自定义模版标签
+
+博客侧边栏有四项内容：最新文章、归档、分类和标签云。这些内容相对比较固定和独立，且在各个页面都会显示，如果像文章列表或者文章详情一样，从视图函数中获取这些数据然后传递给模板，则每个页面对应的视图函数里都要写一段获取这些内容的代码，这会导致很多重复代码。更好的解决方案是直接在模板中获取，为此，我们使用 django 的一个新技术：自定义模板标签来完成任务。
+
+前面已经接触过一些 django 内置的模板标签，比如比较简单的 `{% static %}` 模板标签，这个标签帮助我们在模板中引入静态文件。还有比较复杂的如 `{% for %} {% endfor%}` 标签。
+
+这里我们希望自己定义一个模板标签，例如名为 `show_recent_posts` 的模板标签，它可以这样工作：**只要触发模版中插入的 `{% show_recent_posts %}` 标签，就可以打开新的模版`_recent_posts.html`，并将从数据库获取到的 `post_list` 变量传给模板。**这里唯一的不同是我们从数据库获取文章列表的操作不是在视图函数中进行，而是在模板中通过自定义的 `{% show_recent_posts %}` 模板标签进行。
+
+下面以最新文章为例，归档、分类和标签云实现方法类似。
+
+1. 创建模版标签`templatetags`包
+
+   在我们的 **blog 应用**下创建一个 templatetags 文件夹。然后在这个文件夹下创建一个` __init__.py `文件，使这个文件夹成为一个 Python 包。
+
+   此时你的目录结构应该是这样的：
+
+   ```shell
+   blog\
+       __init__.py
+       admin.py
+       apps.py
+       migrations\
+           __init__.py
+       models.py
+       templatetags\
+           __init__.py
+       tests.py
+       views.py
+   ```
+
+2. 编写模版标签代码
+
+   在 templatetags 目录下创建一个 `blog_extras.py` 文件，这个文件存放自定义的模板标签代码。
+
+   ```python
+   from django import template
+   
+   from ..models import Post, Category, Tag
+   
+   register = template.Library()
+   
+   
+   @register.inclusion_tag('blog/inclusions/_recent_posts.html', takes_context=True)
+   def show_recent_posts(context, num=5):
+       return {
+           'recent_post_list': Post.objects.all().order_by('-created_time')[:num],
+       }
+   ```
+
+   首先导入 template 这个模块，然后实例化了一个 `template.Library` 类，并将函数 `show_recent_posts` 装饰为 `register.inclusion_tag`，这样就告诉 django，这个函数是我们自定义的一个类型为 inclusion_tag 的模板标签。
+
+3. 定义模版
+
+   在 `templates\blogs` 目录下创建一个 `inclusions` 文件夹，然后创建一个 `_recent_posts.html `文件，内容如下：
+
+   ```html
+   <div class="widget widget-recent-posts">
+     <h3 class="widget-title">最新文章</h3>
+     <ul>
+       {% for post in recent_post_list %}
+         <li>
+           <a href="{{ post.get_absolute_url }}">{{ post.title }}</a>
+         </li>
+       {% empty %}
+         暂无文章！
+       {% endfor %}
+     </ul>
+   </div>
+   ```
+
+4. 使用自定义模版标签
+
+   首先在模板中导入存放这些模板标签的模块，这里是 `blog_extras.py` 模块，然后找到侧边栏各项，将他们都替换成对应的模板标签：
+
+   ```html
+   templates/base.html
+   
+   <!DOCTYPE html>
+   {% load static %}
+   {% load blog_extras %}
+   <html>
+     ...
+     <aside class="col-md-4">
+     	{% block toc %}
+     	{% endblock toc %}
+       
+     	{% show_recent_posts %}
+     	{% show_archives %}
+     	{% show_categories %}
+     	{% show_tags %}
+       
+     	<div class="rss">
+       	<a href=""><span class="ion-social-rss-outline"></span> RSS 订阅</a>
+     	</div>
+   	</aside>
+   </html>
+   ```
+
+5. 实现侧边栏跳转功能
+
+   1. 新建视图函数
+
+      ```python
+      blog/views.py
+      
+      # 引入 Category 类
+      from .models import Post, Category, Tag
+      
+      def archive(request, year, month):
+          post_list = Post.objects.filter(created_time__year=year,
+                                          created_time__month=month
+                                          ).order_by('-created_time')
+          return render(request, 'blog/index.html', context={'post_list': post_list})
+      
+      def category(request, pk):
+          cate = get_object_or_404(Category, pk=pk)
+          post_list = Post.objects.filter(category=cate).order_by('-created_time')
+          return render(request, 'blog/index.html', context={'post_list': post_list})
+      
+      def tag(request, pk):
+          t = get_object_or_404(Tag, pk=pk)
+          post_list = Post.objects.filter(tags=t).order_by('-created_time')
+          return render(request, 'blog/index.html', context={'post_list': post_list})
+      ```
+
+   2. 编辑配置URL
+
+      ```python
+      blog/urls.py
+      
+      urlpatterns = [
+          path('', views.index, name='index'),
+          path('post/<int:pk>/', views.detail, name='detail'),
+          path('archives/<int:year>/<int:month>/', views.archive, name='archive'),
+          path('categories/<int:pk>/', views.category, name='category'),
+          path('tags/<int:pk>/', views.tag, name='tag'),
+      ]
+      ```
+
+   3. 修改标签模版
+
+      分别找到对应的标签模版，修改链接值：
+
+      - `_archives.html` : `href="{% url 'blog:archive' date.year date.month %}"`
+      - `_categories.html` : `href="{% url 'blog:category' category.pk %}"`
+      - `_tags.html` : `href="{% url 'blog:tag' tag.pk %}"`
+
+
+
