@@ -1,0 +1,83 @@
+# [Python 语言参考](https://docs.python.org/zh-cn/3/reference/index.html)
+
+本参考手册描述了 Python 的语法和“核心语义”。本参考是简洁的，但试图做到准确和完整。 非必要的内建对象类型和内建函数、模块的语义描述在 [Python 标准库](https://docs.python.org/zh-cn/3/library/index.html#library-index) 中。有关该语言的非正式介绍，请参阅 [Python 教程](https://docs.python.org/zh-cn/3/tutorial/index.html#tutorial-index) 。对 C 或 C++ 程序员，还有两个额外的手册： [扩展和嵌入 Python 解释器](https://docs.python.org/zh-cn/3/extending/index.html#extending-index) 概述了如何编写一个 Python 扩展模块，[Python/C API 参考手册](https://docs.python.org/zh-cn/3/c-api/index.html#c-api-index) 详细介绍了 C/C++ 中可用的接口。
+
+- \1. 概述
+  - [1.1. 其他实现](https://docs.python.org/zh-cn/3/reference/introduction.html#alternate-implementations)
+  - [1.2. 标注](https://docs.python.org/zh-cn/3/reference/introduction.html#notation)
+- \2. 词法分析
+  - [2.1. 行结构](https://docs.python.org/zh-cn/3/reference/lexical_analysis.html#line-structure)
+  - [2.2. 其他形符](https://docs.python.org/zh-cn/3/reference/lexical_analysis.html#other-tokens)
+  - [2.3. 标识符和关键字](https://docs.python.org/zh-cn/3/reference/lexical_analysis.html#identifiers)
+  - [2.4. 字面值](https://docs.python.org/zh-cn/3/reference/lexical_analysis.html#literals)
+  - [2.5. 运算符](https://docs.python.org/zh-cn/3/reference/lexical_analysis.html#operators)
+  - [2.6. 分隔符](https://docs.python.org/zh-cn/3/reference/lexical_analysis.html#delimiters)
+- \3. 数据模型
+  - [3.1. 对象、值与类型](https://docs.python.org/zh-cn/3/reference/datamodel.html#objects-values-and-types)
+  - [3.2. 标准类型层级结构](https://docs.python.org/zh-cn/3/reference/datamodel.html#the-standard-type-hierarchy)
+  - [3.3. 特殊方法名称](https://docs.python.org/zh-cn/3/reference/datamodel.html#special-method-names)
+  - [3.4. 协程](https://docs.python.org/zh-cn/3/reference/datamodel.html#coroutines)
+- \4. 执行模型
+  - [4.1. 程序的结构](https://docs.python.org/zh-cn/3/reference/executionmodel.html#structure-of-a-program)
+  - [4.2. 命名与绑定](https://docs.python.org/zh-cn/3/reference/executionmodel.html#naming-and-binding)
+  - [4.3. 异常](https://docs.python.org/zh-cn/3/reference/executionmodel.html#exceptions)
+- \5. 导入系统
+  - [5.1. `importlib`](https://docs.python.org/zh-cn/3/reference/import.html#importlib)
+  - [5.2. 包](https://docs.python.org/zh-cn/3/reference/import.html#packages)
+  - [5.3. 搜索](https://docs.python.org/zh-cn/3/reference/import.html#searching)
+  - [5.4. 加载](https://docs.python.org/zh-cn/3/reference/import.html#loading)
+  - [5.5. 基于路径的查找器](https://docs.python.org/zh-cn/3/reference/import.html#the-path-based-finder)
+  - [5.6. 替换标准导入系统](https://docs.python.org/zh-cn/3/reference/import.html#replacing-the-standard-import-system)
+  - [5.7. 包相对导入](https://docs.python.org/zh-cn/3/reference/import.html#package-relative-imports)
+  - [5.8. 有关 __main__ 的特殊事项](https://docs.python.org/zh-cn/3/reference/import.html#special-considerations-for-main)
+  - [5.9. 开放问题项](https://docs.python.org/zh-cn/3/reference/import.html#open-issues)
+  - [5.10. 参考文献](https://docs.python.org/zh-cn/3/reference/import.html#references)
+- \6. 表达式
+  - [6.1. 算术转换](https://docs.python.org/zh-cn/3/reference/expressions.html#arithmetic-conversions)
+  - [6.2. 原子](https://docs.python.org/zh-cn/3/reference/expressions.html#atoms)
+  - [6.3. 原型](https://docs.python.org/zh-cn/3/reference/expressions.html#primaries)
+  - [6.4. await 表达式](https://docs.python.org/zh-cn/3/reference/expressions.html#await-expression)
+  - [6.5. 幂运算符](https://docs.python.org/zh-cn/3/reference/expressions.html#the-power-operator)
+  - [6.6. 一元算术和位运算](https://docs.python.org/zh-cn/3/reference/expressions.html#unary-arithmetic-and-bitwise-operations)
+  - [6.7. 二元算术运算符](https://docs.python.org/zh-cn/3/reference/expressions.html#binary-arithmetic-operations)
+  - [6.8. 移位运算](https://docs.python.org/zh-cn/3/reference/expressions.html#shifting-operations)
+  - [6.9. 二元位运算](https://docs.python.org/zh-cn/3/reference/expressions.html#binary-bitwise-operations)
+  - [6.10. 比较运算](https://docs.python.org/zh-cn/3/reference/expressions.html#comparisons)
+  - [6.11. 布尔运算](https://docs.python.org/zh-cn/3/reference/expressions.html#boolean-operations)
+  - [6.12. 条件表达式](https://docs.python.org/zh-cn/3/reference/expressions.html#conditional-expressions)
+  - [6.13. lambda 表达式](https://docs.python.org/zh-cn/3/reference/expressions.html#lambda)
+  - [6.14. 表达式列表](https://docs.python.org/zh-cn/3/reference/expressions.html#expression-lists)
+  - [6.15. 求值顺序](https://docs.python.org/zh-cn/3/reference/expressions.html#evaluation-order)
+  - [6.16. 运算符优先级](https://docs.python.org/zh-cn/3/reference/expressions.html#operator-precedence)
+- \7. 简单语句
+  - [7.1. 表达式语句](https://docs.python.org/zh-cn/3/reference/simple_stmts.html#expression-statements)
+  - [7.2. 赋值语句](https://docs.python.org/zh-cn/3/reference/simple_stmts.html#assignment-statements)
+  - [7.3. `assert` 语句](https://docs.python.org/zh-cn/3/reference/simple_stmts.html#the-assert-statement)
+  - [7.4. `pass` 语句](https://docs.python.org/zh-cn/3/reference/simple_stmts.html#the-pass-statement)
+  - [7.5. `del` 语句](https://docs.python.org/zh-cn/3/reference/simple_stmts.html#the-del-statement)
+  - [7.6. `return` 语句](https://docs.python.org/zh-cn/3/reference/simple_stmts.html#the-return-statement)
+  - [7.7. `yield` 语句](https://docs.python.org/zh-cn/3/reference/simple_stmts.html#the-yield-statement)
+  - [7.8. `raise` 语句](https://docs.python.org/zh-cn/3/reference/simple_stmts.html#the-raise-statement)
+  - [7.9. `break` 语句](https://docs.python.org/zh-cn/3/reference/simple_stmts.html#the-break-statement)
+  - [7.10. `continue` 语句](https://docs.python.org/zh-cn/3/reference/simple_stmts.html#the-continue-statement)
+  - [7.11. `import` 语句](https://docs.python.org/zh-cn/3/reference/simple_stmts.html#the-import-statement)
+  - [7.12. `global` 语句](https://docs.python.org/zh-cn/3/reference/simple_stmts.html#the-global-statement)
+  - [7.13. `nonlocal` 语句](https://docs.python.org/zh-cn/3/reference/simple_stmts.html#the-nonlocal-statement)
+- \8. 复合语句
+  - [8.1. `if` 语句](https://docs.python.org/zh-cn/3/reference/compound_stmts.html#the-if-statement)
+  - [8.2. `while` 语句](https://docs.python.org/zh-cn/3/reference/compound_stmts.html#the-while-statement)
+  - [8.3. `for` 语句](https://docs.python.org/zh-cn/3/reference/compound_stmts.html#the-for-statement)
+  - [8.4. `try` 语句](https://docs.python.org/zh-cn/3/reference/compound_stmts.html#the-try-statement)
+  - [8.5. `with` 语句](https://docs.python.org/zh-cn/3/reference/compound_stmts.html#the-with-statement)
+  - [8.6. 函数定义](https://docs.python.org/zh-cn/3/reference/compound_stmts.html#function-definitions)
+  - [8.7. 类定义](https://docs.python.org/zh-cn/3/reference/compound_stmts.html#class-definitions)
+  - [8.8. 协程](https://docs.python.org/zh-cn/3/reference/compound_stmts.html#coroutines)
+- \9. 最高层级组件
+  - [9.1. 完整的 Python 程序](https://docs.python.org/zh-cn/3/reference/toplevel_components.html#complete-python-programs)
+  - [9.2. 文件输入](https://docs.python.org/zh-cn/3/reference/toplevel_components.html#file-input)
+  - [9.3. 交互式输入](https://docs.python.org/zh-cn/3/reference/toplevel_components.html#interactive-input)
+  - [9.4. 表达式输入](https://docs.python.org/zh-cn/3/reference/toplevel_components.html#expression-input)
+- [10. 完整的语法规范](https://docs.python.org/zh-cn/3/reference/grammar.html)
+
+
+
