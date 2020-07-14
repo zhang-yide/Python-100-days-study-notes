@@ -62,6 +62,18 @@ python manage.py startapp blog
 
 在`django_project/django_project/setting.py`文件中`INSTALLED_APPS`设置项中添加`blog`应用。
 
+```python
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'blog',  # 注册 blog 应用
+]
+```
+
 ### 绑定URL与视图函数
 
 1. 编写视图函数
@@ -164,18 +176,16 @@ python manage.py migrate
 ```python
 from django.db import models
 from django.contrib.auth.models import User
- 
- 
+
+
 class Category(models.Model):
     """分类"""
     name = models.CharField(max_length=100)
- 
- 
+
 class Tag(models.Model):
     """标签"""
     name = models.CharField(max_length=100)
- 
- 
+
 class Post(models.Model):
     """文章"""
     title = models.CharField(max_length=70)
@@ -186,6 +196,7 @@ class Post(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     tags = models.ManyToManyField(Tag, blank=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
+
 ```
 
 > `django.contrib.auth`是 django 内置的应用，专门用于处理网站用户的注册、登录等流程。其中 `User` 是 django 为我们已经写好的用户模型 。  
@@ -328,7 +339,7 @@ python manage.py runserver
 ```python
 from django.contrib import admin
 
-from hrs.models import Category, Tag, Post
+from blog.models import Category, Tag, Post
 
 admin.site.register(Category)
 admin.site.register(Tag)
@@ -853,7 +864,7 @@ templates/blog/index.html
 
 4. 模版继承
 
-   在template目录下新建`base.html`文件，将`index.html`和`detail.html`共有部分粘贴进去，用`{% block <name> %}``{% endblock <name> %}` 的格式替换需要替换的部分。
+   在templates目录下新建`base.html`文件，将`index.html`和`detail.html`共有部分粘贴进去，用`{% block <name> %}``{% endblock <name> %}` 的格式替换需要替换的部分。
 
    ```html
    templates/base.html
@@ -997,6 +1008,7 @@ templates/blog/index.html
 
          ```python
          blog/models.py
+         from mdeditor.fields import MDTextField
          
          class Post(models.Model):
              body = MDTextField()
@@ -1014,6 +1026,7 @@ templates/blog/index.html
 
       ```python
       blog/views.py
+      import markdown
       
       def detail(request, pk):
           post = get_object_or_404(Post, pk=pk)
@@ -1032,11 +1045,11 @@ templates/blog/index.html
       > - `codehilite`是语法高亮
       > - `toc`是自动生成目录
 
-      3. 在模版文件中添加safe标签
+3. 在模版文件中添加safe标签
 
-         django 出于安全方面的考虑，任何的 HTML 代码在 django 的模板中都会被转义（即显示原始的 HTML 代码，而不是经浏览器渲染后的格式）。为了解除转义，只需在模板变量后使用 `safe` 过滤器。即，在模板中找到展示博客文章内容的 `{{ post.body }}` 部分，为其加上 safe 过滤器：`{{ post.body|safe }}`。
+   django 出于安全方面的考虑，任何的 HTML 代码在 django 的模板中都会被转义（即显示原始的 HTML 代码，而不是经浏览器渲染后的格式）。为了解除转义，只需在模板变量后使用 `safe` 过滤器。即，在模板中找到展示博客文章内容的 `{{ post.body }}` 部分，为其加上 safe 过滤器：`{{ post.body|safe }}`。
 
-3. 代码高亮
+4. 代码高亮
 
    1. 安装插件
 
@@ -1056,7 +1069,7 @@ templates/blog/index.html
       <link rel="stylesheet" href="{% static 'blog/css/highlights/github.css' %}">
       ```
 
-4. 自动生成目录
+5. 自动生成目录
 
    1. 在视图函数中添加目录属性
 
@@ -1071,8 +1084,8 @@ templates/blog/index.html
               'markdown.extensions.toc',
           ])
           post.body = md.convert(post.body)
-              post.toc = md.toc
-       
+          post.toc = md.toc
+      
           return render(request, 'blog/detail.html', context={'post': post})
       ```
 
@@ -1095,7 +1108,7 @@ templates/blog/index.html
       {% endblock toc %}
       ```
 
-5. 自动生成摘要
+6. 自动生成摘要
 
    [自动生成文章摘要](https://www.zmrenwu.com/courses/hellodjango-blog-tutorial/materials/69/)
 
