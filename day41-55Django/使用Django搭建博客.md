@@ -1184,7 +1184,7 @@ templates/blog/index.html
 
 4. 使用自定义模版标签
 
-   首先在模板中导入存放这些模板标签的模块，这里是 `blog_extras.py` 模块，然后找到侧边栏各项，将他们都替换成对应的模板标签：
+   首先在模板中导入存放这些模板标签的模块: `{% load blog_extras %}`，这里是 `blog_extras.py` 模块，然后找到侧边栏各项，将他们都替换成对应的模板标签：
 
    ```html
    templates/base.html
