@@ -194,7 +194,7 @@ class Post(models.Model):
     modified_time = models.DateTimeField()
     excerpt = models.CharField(max_length=200, blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
-    tags = models.ManyToManyField(Tag, blank=True)
+    tag = models.ManyToManyField(Tag, blank=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
 
 ```
@@ -443,7 +443,7 @@ class Post(models.Model):
      modified_time = models.DateTimeField('修改时间')
      excerpt = models.CharField('摘要', max_length=200, blank=True)
      category = models.ForeignKey(Category, verbose_name='分类', on_delete=models.CASCADE)
-     tags = models.ManyToManyField(Tag, verbose_name='标签', blank=True)
+     tag = models.ManyToManyField(Tag, verbose_name='标签', blank=True)
      author = models.ForeignKey(User, verbose_name='作者', on_delete=models.CASCADE)
 ```
 
@@ -456,7 +456,7 @@ class Post(models.Model):
       
       class PostAdmin(admin.ModelAdmin):
           list_display = ('title', 'created_time', 'category', 'author')
-          fields = ['title', 'body', 'excerpt', 'category', 'tags']
+          fields = ['title', 'body', 'excerpt', 'category', 'tag']
       ```
 
       > 其中`list_display`，是列表显示项目。
@@ -472,7 +472,7 @@ class Post(models.Model):
       
       class PostAdmin(admin.ModelAdmin):
           list_display = ['title', 'created_time', 'modified_time', 'category', 'author']
-          fields = ['title', 'body', 'excerpt', 'category', 'tags']
+          fields = ['title', 'body', 'excerpt', 'category', 'tag']
        
           def save_model(self, request, obj, form, change):
               obj.author = request.user
@@ -983,7 +983,7 @@ templates/blog/index.html
       MEDIA_URL = '/media/'  # markdown编辑上传的文件和图片会默认存在/media/editor下
       ```
 
-      3. 添加设置到`urls.py` 
+   3. 添加设置到`urls.py` 
 
          ```python
          django_project/urls.py
@@ -1004,7 +1004,7 @@ templates/blog/index.html
              urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
          ```
 
-      4. 在`models.py`中修改需要Markdown的关键词
+   4. 在`models.py`中修改需要Markdown的关键词
 
          ```python
          blog/models.py
@@ -1233,7 +1233,7 @@ templates/blog/index.html
       
       def tag(request, pk):
           t = get_object_or_404(Tag, pk=pk)
-          post_list = Post.objects.filter(tags=t).order_by('-created_time')
+          post_list = Post.objects.filter(tag=t).order_by('-created_time')
           return render(request, 'blog/index.html', context={'post_list': post_list})
       ```
 
@@ -1259,5 +1259,393 @@ templates/blog/index.html
       - `_categories.html` : `href="{% url 'blog:category' category.pk %}"`
       - `_tags.html` : `href="{% url 'blog:tag' tag.pk %}"`
 
+### 实现评论功能
 
+
+
+### 部署Django博客
+
+#### 部署前准备
+
+1. 服务器使用虚拟机VirtualBox，CentOS7系统，网络模式选择桥连；
+2. 本地环境为Windows10；
+3. 远程登陆服务器使用Xshell。教程可以参考：[教你怎么使用xshell远程连接linux服务器](http://jingyan.baidu.com/article/ab69b270b0ca3d2ca7189fdc.html)。
+
+#### 配置服务器
+
+1. 创建超级用户：
+
+   在 root 下部署代码不够安全，最好是建一个新用户
+
+   ```shell
+   # 在 root 用户下运行这条命令创建一个新用户，zhangyide 是用户名
+   root@server:~# adduser yangxg
+   # 为新用户设置密码
+   # 注意在输密码的时候不会有字符显示，不要以为键盘坏了，正常输入即可
+   root@server:~# passwd zhangyide
+   # 把新创建的用户加入超级权限组
+   root@server:~# usermod -aG wheel zhangyide
+   # 切换到创建的新用户
+   root@server:~# su zhangyide
+   # 切换成功，@符号前面已经是新用户名而不是 root 了
+   zhangyide@server:$
+   ```
+
+2. 更新系统
+
+   如果是新服务器的话，最好先更新一下系统，避免因为版本太旧而给后面安装软件带来麻烦。运行下面的两条命令：
+
+   ```shell
+   sudo yum update
+   sudo yum upgrade
+   ```
+
+3. 创建源文件及应用文件夹
+
+   ```shell
+   mkdir -p ~/src
+   mkdir -p ~/apps
+   ```
+
+   src用来放各种源文件，app用以放应用文件
+
+4. 安装MySQL
+
+   ```shell
+   # 添加包
+   wget https://dev.mysql.com/get/mysql80-community-release-el7-3.noarch.rpm
+   rpm -ivh mysql80-community-release-el7-3.noarch.rpm
+   # 安装
+   yum install -y  mysql-community-server
+   # 修改配置文件
+   vim /etc/my.cnf
+   
+   ```
+
+   ```shell
+   [mysqld]
+   
+   port = 3306
+   
+   character-set-server=utf8mb4
+   collation-server=utf8mb4_general_ci
+   
+   # 表名不区分大小写(启动前配置)
+   lower_case_table_names=1
+   
+   # 设置日志时区和系统一致
+   log_timestamps=SYSTEM
+   
+   [client]
+   default-character-set=utf8mb4
+   ```
+
+   ```shell
+   # 启动服务
+   systemctl start mysqld
+   
+   # 查看状态
+   systemctl status mysqld
+   
+   # 开机启动
+   systemctl enable mysqld
+   systemctl daemon-reload
+   
+   # 查看MySQL为Root账号生成的临时密码
+   grep "A temporary password" /var/log/mysqld.log
+   
+   # 进入MySQL shell
+   mysql -u root -p
+   
+   # 修改密码
+   ALTER USER 'root'@'localhost' IDENTIFIED BY 'MyNewPass4!';
+   
+   ```
+
+5. 安装python3和pip
+
+   CentOS 7 自带的 Python 发行版为 2.7，因此需要安装 Python3，为了兼容性，我们安装 Python 3.6.4。
+
+   ```shell
+   # 安装可能的依赖
+   sudo yum install -y openssl-devel bzip2-devel expat-devel gdbm-devel readline-devel sqlite-devel
+   # 安装python
+   cd ~/src
+   wget https://www.python.org/ftp/python/3.6.4/Python-3.6.4.tgz
+   tar -zxvf Python-3.6.4.tgz
+   cd Python-3.6.4
+   sudo make install
+   sudo pip3.6 install pipenv
+   ```
+
+6. 创建虚拟环境
+
+   - 参见之前的内容。
+
+   - 可以将虚拟环境创建在`~/zhangyide/app/venv`下
+
+   - 一下内容不做特殊说明均在虚拟环境操作。
+
+#### 部署代码
+
+1. 部署前本地文件修改
+
+   为避免 HTTP Host 头攻击修改settings.py：
+
+   ```python
+   blogproject/settings.py
+   # 添加服务器ip
+   ALLOWED_HOSTS = ['127.0.0.1', 'localhost ', '1.2.3.4']
+   ```
+
+   为了能够方便地让 Nginx 处理静态文件的请求，把项目中的全部静态文件收集到一个统一的目录下:
+
+   ```python
+   blogproject/settings.py
+    
+   # 其他配置...
+    
+   STATIC_URL = '/static/'
+   # 加入下面的配置
+   STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+   ```
+
+   `STATIC_ROOT` 即指定静态文件的收集路径，这里指定为 BASE_DIR（项目根目录，在 settings.py 文件起始处定义）下的 static 文件夹。
+
+   将本地更新push到Git
+
+2. 将代码部署到服务器
+
+   ```shell
+   # 安装git
+   sudo  yum install git
+   # 拉取代码
+   cd ~/apps
+   git clone https://github.com/django-blog/xxxxx.git
+   ```
+
+3. 安装项目依赖
+
+   ```shell
+   cd django-blog
+   pip install -r requirements.txt
+   ```
+
+#### 使用Gunicorn
+
+1. 安装
+
+   ```shell
+   pipenv install gunicorn
+   ```
+
+   安装后记着更新`requirements.txt`并push到git。
+
+2. 启动服务器
+
+   ```shell
+   run gunicorn django_blog.wsgi -w 2 -k gthread -b 0.0.0.0:8000
+   ```
+
+   `-w 2 `表示启动 2 个 worker 用于处理请求（一个 worker 可以理解为一个进程），通常将 worker 数目设置为 CPU 核心数的 2-4 倍。
+
+   `-k gthread` 指定每个 worker 处理请求的方式，根据大家的实践，指定为 `gthread` 的异步模式能获取比较高的性能，因此我们采用这种模式。
+
+   `-b 0.0.0.0:8000`，将服务绑定到 8000 端口，运行通过公网 ip 和 8000 端口访问应用。
+
+   访问 ip:8000（ip 为你服务器的公网 ip），应用成功访问了，但是样式完全乱了。这不是 bug！此前使用 django 自带的开发服务器，它会自动帮我们处理静态样式文件，但是 Gunicorn 并不会帮我们这么做。因为处理静态文件并不是 Gunicorn 所擅长的事，应该将它交给更加专业的服务应用来做，比如 Nginx。
+
+#### 使用Nginx
+
+当我们访问一个博客文章详情页面时，服务器会接收到下面两种请求：
+
+- 显示文章的详情信息，这些信息通常保存在数据库里，因此需要调用数据库获取数据。
+- 图片、css、js 等存在服务器某个文件夹下的静态文件。
+
+对于前一种请求，博客文章的数据需要借助 django 从数据库中获取，Nginx 处理不了，它就会把这个请求转发给 运行在 Gunicorn 服务中的 django 应用，让 django 去处理。而对于后一种静态文件的请求，只需要去这些静态文件所在的文件夹获取，Nginx 就会代为处理，不再麻烦 django。
+
+用 django 去获取静态文件是很耗时的，但 Nginx 可以很高效地处理，这就是我们要使用 Nginx 的原因。
+
+1. 安装
+
+   ```shell
+   sudo yum install epel-release -y
+   sudo yum install nginx -y
+   # 启动Nginx
+   sudo systemctl start nginx
+   ```
+
+   在浏览器输入 ip（不输入端口则默认为 80 端口，Nginx 默认在 80 端口监听请求），看到 Nginx 的欢迎界面说明 Nginx 启动成功了。
+
+   如果显示`502 Gatway`，可参见[这个文章](https://blog.csdn.net/u014292858/article/details/102899417)
+
+2. 配置
+
+   Nginx 的配置位于 /etc/nginx/nginx.conf 文件中，你可以打开这个文件看看里面的内容，下面是一些关键性的配置：
+
+   ```shell
+   user nginx;
+   ...
+   http {
+       # Load modular configuration files from the /etc/nginx/conf.d directory.
+       # See http://nginx.org/en/docs/ngx_core_module.html#include
+       # for more information.
+       include /etc/nginx/conf.d/*.conf;
+    
+       server {
+           ...
+           }
+       }
+   }
+   ```
+
+   修改`user nginx`为`user zhangyide`。
+
+   `http`下的`include`会将指定路径中配置文件包含进来，这样便于配置的模块化管理，例如我们可以把不同 web 应用的配置放到 /etc/nginx/conf.d/ 目录下，这样 nginx 会把这个目录下所有以 .conf 结尾的文件内容包含到 nginx.conf 的配置中来，而无需把所有配置都堆到 nginx.conf 中，使得配置文件十分臃肿。为此，我们将配置写到 /etc/nginx/conf.d/ 目录下。先在服务器的 conf.d 目录下新建一个配置文件，我把它叫做 django-blog.conf。写入下面的配置内容：
+
+   ```shell
+   server {
+       charset utf-8;
+       listen 80;
+       server_name 192.168.0.105;
+   
+       location /static {
+           alias /home/zhangyide/apps/django-blog/static;
+       }
+   
+       location / {
+           proxy_set_header Host $host;
+           proxy_pass http://127.0.0.1:8000;
+       }
+   }
+   ```
+
+   服务的域名为 192.168.0.105，所以来自这个域名的请求都会被这个服务所处理。
+
+   所有URL 匹配 /static 的请求均由 Nginx 处理，alias 指明了静态文件的存放目录，这样 Nginx 就可以在这个目录下找到请求的文件返回给客户端。
+
+   其它请求转发给运行在本机 8000 端口的应用程序处理，我们会在这个端口启动 Gunicorn 用于处理 Nginx 转发过来的请求。
+
+   重启 nginx 使得配置生效：
+
+   ```shell
+   sudo systemctl restart nginx
+   ```
+
+3. 关闭DEBUG模式，收集静态文件
+
+   开发环境下，django 为了调试方便，会将 settings.py 文件中的 DEBUG 选项配置为 True，这样如果程序运行出错，调试信息将一览无余，这在开发时很方便，但部署到线上就会带来巨大安全隐患，所以我们把 DEBUG 选项设置为 False，关闭调试模式。
+
+   修改后通过Git各端。
+
+   收集静态文件到之前配置的 STATIC_ROOT 目录下：
+
+   ```shell
+   python manage.py collectstatic
+   ```
+
+   使用 Gunicorn 启动服务。
+
+   ```shell
+   gunicorn django_blog.wsgi -w 2 -k gthread -b 127.0.0.1:8000
+   ```
+
+   现在，访问配置的域名 192.168.0.105（Nginx 中配置的域名），可以看到博客成功部署！
+
+#### 管理Gunicorn进程
+
+现在 Gunicorn 是我们手工启动的，一旦我们退出 shell，服务器就关闭了，博客无法访问。就算在后台启动 Gunicorn，万一哪天服务器崩溃重启了又得重新登录服务器去启动，非常麻烦。为此使用 Supervisor 来管理 Gunicorn 进程，这样当服务器重新启动或者 Gunicorn 进程意外崩溃后，Supervisor 会帮我们自动重启 Gunicorn。
+
+1. 安装Supervisor
+
+   ```shell
+   pip install supervisor
+   ```
+
+2. 配置
+
+   为了方便，我一般会设置如下的目录结构（位于 ~/etc 目录下）来管理 Supervisor 有关的文件：
+
+   ```shell
+   ~/etc
+    
+   ├── supervisor
+   │   ├── conf.d
+   │   └── var
+   │       ├── log
+   └── supervisord.conf
+   ```
+
+   其中 supervisord.conf 是 Supervior 的配置文件，它会包含 conf.d 下的配置。var 目录下用于存放一些经常变动的文件，例如 socket 文件，pid 文件，log 下则存放日志文件。
+
+   首先来建立上述的目录结构：
+
+   ```shell
+   mkdir -p ~/etc/supervisor/conf.d
+   mkdir -p ~/etc/supervisor/var/log
+   ```
+
+   修改 supervisor.conf:
+
+   ```shell
+   [unix_http_server]
+   file=/home/zhangyide/etc/supervisor/var/supervisor.sock
+   
+   [supervisord]
+   logfile=/home/zhangyide/etc/supervisor/var/log/supervisord.log
+   pidfile=/home/zhangyide/etc/supervisor/var/supervisord.pid
+   user=yangxg
+   
+   [supervisorctl]
+   serverurl=unix:///home/zhangyide/etc/supervisor/var/supervisor.sock
+   
+   [include]
+   files = /home/zhangyide/etc/supervisor/conf.d/*.ini
+   ```
+
+    /home/yangxg/etc/supervisor/conf.d/ 目录下新建博客应用的配置`django-blog.ini`：
+
+   ```shell
+   [program:django-blog]
+   command=gunicorn django_blog.wsgi -w 2 -k gthread -b 127.0.0.1:8000
+   directory=/home/zhangyide/apps/django-blog
+   autostart=true
+   autorestart=unexpected
+   user=zhangyide
+   stdout_logfile=/home/zhangyide/etc/supervisor/var/log/django-blog-stdout.log
+   stderr_logfile=/home/zhangyide/etc/supervisor/var/log/django-blog-stderr.log
+   ```
+
+   说一下各项配置的含义：
+
+   [program:hellodjango-blog-tutorial] 指明运行应用的进程，名为 hellodjango-blog-tutorial。
+
+   command 为进程启动时执行的命令。
+
+   directory 指定执行命令时所在的目录。
+
+   autostart 随 Supervisor 启动自动启动进程。
+
+   autorestart 进程意外退出时重启。
+
+   user 进程运行的用户，防止权限问题。
+
+   stdout_logfile，stderr_logfile 日志输出文件。
+
+3. 启动Supervisor
+
+   ```shell
+   supervisord -c ~/etc/supervisord.conf
+   # 进入 supervisorctl 进程管理控制台
+   supervisorctl -c ~/etc/supervisord.conf
+   # 进入控制台
+   django-blog                      RUNNING   pid 5443, uptime 0:00:33
+   # 执行 update 命令更新配置文件并启动应用
+   supervisor> update
+   supervisor> quit
+   ```
+
+   浏览器输入域名，可以看到服务已经正常启动了。
+
+#### 使用 CDN 加快 Bootstrap 和 jQuery 的加载速度
 
