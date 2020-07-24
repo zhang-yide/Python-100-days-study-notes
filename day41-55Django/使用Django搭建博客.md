@@ -1,4 +1,5 @@
 ### 概述
+
 本笔记是基于[追梦人物的博客](https://www.zmrenwu.com/courses/hellodjango-blog-tutorial/)以及Youtube上大神 [Corey Schafer](https://www.youtube.com/channel/UCCezIgC97PvUuR4_gbFUs5g) 的视频：[Python Django Tutorial](https://www.youtube.com/watch?v=UmljXZIypDc&list=PL-osiE80TeTtoQCKZ03TU5fNfx2UY6U4p&index=1) 整理而来。
 
 ### 准备工作
@@ -1314,9 +1315,9 @@ templates/blog/index.html
    ```shell
    # 添加包
    wget https://dev.mysql.com/get/mysql80-community-release-el7-3.noarch.rpm
-   rpm -ivh mysql80-community-release-el7-3.noarch.rpm
+   sudo rpm -ivh mysql80-community-release-el7-3.noarch.rpm
    # 安装
-   yum install -y  mysql-community-server
+   sudo yum install -y  mysql-community-server
    # 修改配置文件
    vim /etc/my.cnf
    
@@ -1360,6 +1361,8 @@ templates/blog/index.html
    # 修改密码
    ALTER USER 'root'@'localhost' IDENTIFIED BY 'MyNewPass4!';
    
+   # 创建项目数据库
+   creat database django_blog;
    ```
 
 5. 安装python3和pip
@@ -1369,22 +1372,29 @@ templates/blog/index.html
    ```shell
    # 安装可能的依赖
    sudo yum install -y openssl-devel bzip2-devel expat-devel gdbm-devel readline-devel sqlite-devel
+   # 安装gcc
+   sudo yum install gcc
    # 安装python
    cd ~/src
    wget https://www.python.org/ftp/python/3.6.4/Python-3.6.4.tgz
    tar -zxvf Python-3.6.4.tgz
    cd Python-3.6.4
-   sudo make install
+   ./configure
+   sudo make && make install
    sudo pip3.6 install pipenv
    ```
 
 6. 创建虚拟环境
 
    - 参见之前的内容。
-
-   - 可以将虚拟环境创建在`~/zhangyide/app/venv`下
-
+- 可以将虚拟环境创建在`~/zhangyide/app/venv`下
    - 一下内容不做特殊说明均在虚拟环境操作。
+
+7. 然后创建一下数据库：
+
+   ```shell
+   pipenv run python manage.py migrate
+   ```
 
 #### 部署代码
 
@@ -1444,7 +1454,7 @@ templates/blog/index.html
 2. 启动服务器
 
    ```shell
-   run gunicorn django_blog.wsgi -w 2 -k gthread -b 0.0.0.0:8000
+   pipenv run gunicorn django_blog.wsgi -w 2 -k gthread -b 0.0.0.0:8000
    ```
 
    `-w 2 `表示启动 2 个 worker 用于处理请求（一个 worker 可以理解为一个进程），通常将 worker 数目设置为 CPU 核心数的 2-4 倍。
@@ -1473,9 +1483,13 @@ templates/blog/index.html
    sudo yum install nginx -y
    # 启动Nginx
    sudo systemctl start nginx
+   # 设置开机自启动
+   sudo systemctl enable nginx.service
    ```
 
    在浏览器输入 ip（不输入端口则默认为 80 端口，Nginx 默认在 80 端口监听请求），看到 Nginx 的欢迎界面说明 Nginx 启动成功了。
+
+   如果无法访问应该是服务器防火墙的问题，可参见[这个文章](https://www.cnblogs.com/zhoulujun/p/12099874.html)
 
    如果显示`502 Gatway`，可参见[这个文章](https://blog.csdn.net/u014292858/article/details/102899417)
 
@@ -1585,6 +1599,13 @@ templates/blog/index.html
    mkdir -p ~/etc/supervisor/var/log
    ```
 
+   然后进入 ~/etc 目录下生成 Supervisor 的配置文件：
+
+   ```shell
+   cd ~/etc
+   echo_supervisord_conf > supervisord.conf
+   ```
+
    修改 supervisor.conf:
 
    ```shell
@@ -1594,7 +1615,7 @@ templates/blog/index.html
    [supervisord]
    logfile=/home/zhangyide/etc/supervisor/var/log/supervisord.log
    pidfile=/home/zhangyide/etc/supervisor/var/supervisord.pid
-   user=yangxg
+   user=zhangyide
    
    [supervisorctl]
    serverurl=unix:///home/zhangyide/etc/supervisor/var/supervisor.sock
@@ -1603,7 +1624,7 @@ templates/blog/index.html
    files = /home/zhangyide/etc/supervisor/conf.d/*.ini
    ```
 
-    /home/yangxg/etc/supervisor/conf.d/ 目录下新建博客应用的配置`django-blog.ini`：
+    /home/zhangyide/etc/supervisor/conf.d/ 目录下新建博客应用的配置`django-blog.ini`：
 
    ```shell
    [program:django-blog]
@@ -1649,3 +1670,23 @@ templates/blog/index.html
 
 #### 使用 CDN 加快 Bootstrap 和 jQuery 的加载速度
 
+我们的项目使用了 Bootstrap 和 jQuery，这两个文件我们是从本地加载的。如果服务器性能比较差的话，加载需要耗费很长的时间，网站打开的速度就变得无法忍受。我们使用 CDN 来加快加载速度。具体来说，替换 base.html 的几个静态文件的加载标签：
+
+```html
+base.html
+ 
+- <link rel="stylesheet" href="{% static 'blog/css/bootstrap.min.css' %}">
+- <script src="{% static 'blog/js/jquery-2.1.3.min.js' %}"></script>
+- <script src="{% static 'blog/js/bootstrap.min.js' %}"></script>
++ <link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
++ <script src="https://cdn.bootcss.com/jquery/2.1.3/jquery.min.js"></script>
++ <script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+```
+
+本地修改代码后，将代码同步到线上服务器，执行下面的命令重启 hellodjango-blog-tutorial 应用进程：
+
+```shell
+supervisorctl -c ~/etc/supervisord.conf restart django-blog 
+```
+
+这样网站访问的速度将大大提升！
